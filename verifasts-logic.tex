@@ -35,7 +35,7 @@ $$\begin{array}{l}
 \mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
 \mathbf{assert}\ \mathsf{v} = 2
 \end{array}$$
-\caption{An example program}\label{fig:example}
+\caption{An example program. $\mathbf{cons}(0)$ allocates a memory cell, initializes it to 0, and returns its address. The $\mathbf{FAA}$ command performs a sequentially consistent atomic fetch-and-add operation. $c_1\,||\, c_2$ is the parallel composition of commands $c_1$ and $c_2$. $*\ell$ returns the value stored at address $\ell$.}\label{fig:example}
 \end{figure}
 
 \begin{figure}
@@ -119,7 +119,7 @@ $$\begin{array}{l}
 \quad \ghost{\begin{array}{@{} l @{}}
 \mathbf{glet}\ \mathsf{lem} = \mathbf{produce\_lem\_ptr\_chunk}\ \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))(\mathsf{op})\ \{\\
 \quad \annot{\textrm{For all $\mathsf{P}, \mathsf{Q},$}}\\
-\quad \annot{\{\mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, 1, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * \mathsf{pre1}()\}}\\
+\quad \annot{\{\mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, 1, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()\}}\\
 \quad \mathbf{open}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\\
 \quad \annot{\left\{\begin{array}{l}
 \mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, 1, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * {}\\
@@ -151,14 +151,14 @@ $$\begin{array}{l}
 {}[1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 1
 \end{array}\right\}}\\
 \quad \mathbf{close}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()\\
-\quad \annot{\{\mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, 1, \mathsf{P}, \mathsf{Q}) * \mathsf{Q}() * \mathsf{post1}()\}}\\
+\quad \annot{\{\mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, 1, \mathsf{P}, \mathsf{Q}) * \mathsf{Q}() * \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()\}}\\
 \};
 \end{array}}\\
-\quad \annot{\{[1/2]\mathbf{atomic\_space}(\mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 0 * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}, \mathsf{post1})\}}\\
+\quad \annot{\{[1/2]\mathbf{atomic\_space}(\mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 0 * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))\}}\\
 \quad \ghost{\mathbf{close}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();}\\
-\quad \annot{\{\mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}, \mathsf{post1})\}}\\
+\quad \annot{\{\mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))\}}\\
 \quad \mathbf{FAA}(\mathsf{x}, 1);\\
-\quad \annot{\{\mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}, \mathsf{post1})\}}\\
+\quad \annot{\{\mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() * \mathsf{lem} : \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))\}}\\
 \quad \ghost{\mathbf{open}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()}\\
 \quad \annot{\{[1/2]\mathbf{atomic\_space}(\mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 1\}}\\
 ||\\
@@ -170,7 +170,7 @@ $$\begin{array}{l}
 \mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
 \mathbf{assert}\ \mathsf{v} = 2
 \end{array}$$
-\caption{An example using a function as a value and fine-grained concurrency}\label{fig:example}
+\caption{Proof outline for the example proof}\label{fig:example}
 \end{figure}
 
 \end{document}
