@@ -139,7 +139,10 @@ $$\begin{array}{r @{\;} l r}
 & p \in \mathcal{P} & \textrm{predicate constructor names}\\
 & g \in \mathcal{G} & \textrm{ghost variable names}\\
 & \pi \in \mathbb{R}^+ & \textrm{fractions}\\
-\textrm{ghost expressions $E$} ::= & z\ |\ x\ |\ g\ |\ E + E\\
+\textrm{ghost values $V$} ::= & z\ |\ (V, V)\ |\ ()\ |\ \{\overline{V}\}\\
+| & p(\overline{V}) & \textrm{predicate values}\\
+| & \lambda \overline{g}.\;C & \textrm{lemma values}\\
+\textrm{ghost expressions $E$} ::= & V\ |\ x\ |\ g\ |\ E + E\\
 | & p(\overline{E}) & \textrm{predicate constructor applications}\\
 | & (E, E)\ |\ () & \textrm{pair expressions, empty tuple}\\
 | & \emptyset\ |\ \{E\}\ |\ E \cup E & \textrm{set expressions}\\
