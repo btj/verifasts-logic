@@ -1,0 +1,90 @@
+\documentclass{article}
+
+\title{VeriFast's separation logic: a higher-order(ish) logic without laters for modular verification of fine-grained concurrent programs}
+
+\author{Bart Jacobs\\
+{\small KU Leuven, Dept. CS, DistriNet Research Group}\\
+{\small \textsf{bart.jacobs@cs.kuleuven.be}}}
+
+\newcommand{\gmapsto}{\mapsto_\mathsf{g}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present the separation logic of our VeriFast tool for modular verification of single-threaded and multithreaded C, Java, and Rust programs. Since the complexities of the programming language are orthogonal to the logic, we present the logic in the context of a simple concurrent programming language.
+\end{abstract}
+
+\section{Programming language}
+
+\begin{figure}
+$$\begin{array}{l}
+\mathbf{let}\ \mathsf{x} = \mathbf{cons}(0)\ \mathbf{in}\\
+(\\
+\quad \mathbf{FAA}(\mathsf{x}, 1)\\
+||\\
+\quad \mathbf{FAA}(\mathsf{x}, 1)\\
+);\\
+\mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
+\mathbf{assert}\ \mathsf{v} = 2
+\end{array}$$
+\caption{An example program}\label{fig:example}
+\end{figure}
+
+\begin{figure}
+$$\begin{array}{l}
+\mathbf{fix}\ \mathsf{Nx}() = \mathsf{cons}(0, \mathsf{nil})\\
+\mathbf{lem\_type}\ \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) = \mathbf{lem}()\\
+\quad \mathbf{forall}\ \mathsf{v}\\
+\quad \mathbf{req}\ \mathsf{x} \mapsto \mathsf{v} * \mathsf{P}()\\
+\quad \mathbf{ens}\ \mathsf{x} \mapsto \mathsf{v} + \mathsf{n} * \mathsf{Q}()\\
+\mathbf{lem\_type}\ \mathsf{FAA\_ghop}(\mathsf{x}, \mathsf{n}, \mathsf{pre}, \mathsf{post}) = \mathbf{lem}(\mathsf{op})\\
+\quad \mathbf{forall}\ \mathsf{P}, \mathsf{Q}\\
+\quad \mathbf{req}\ \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * \mathsf{pre}()\\
+\quad \mathbf{ens}\ \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{Q}() * \mathsf{post}()\\
+\mathbf{pred\_ctor}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = \exists \mathsf{v1}, \mathsf{v2}.\;[1/2]\mathsf{g1} \gmapsto \mathsf{v1} * [1/2]\mathsf{g2} \gmapsto \mathsf{v2} * \mathsf{x} \mapsto \mathsf{v1} + \mathsf{v2}\\
+\mathbf{pred\_ctor}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 0\\
+\mathbf{pred\_ctor}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 1\\
+\mathbf{pred\_ctor}\ \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g2} \gmapsto 0\\
+\mathbf{pred\_ctor}\ \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g2} \gmapsto 1\\
+\\
+\mathbf{let}\ \mathsf{x} = \mathbf{cons}(0)\ \mathbf{in}\\
+\mathbf{glet}\ \mathsf{g1} = \mathbf{gcons}(0)\ \mathbf{in}\\
+\mathbf{glet}\ \mathsf{g2} = \mathbf{gcons}(0)\ \mathbf{in}\\
+\mathbf{close}\ \mathsf{Inv}(\mathsf{g1}, \mathsf{g2})();\\
+\mathbf{create\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{g1}, \mathsf{g2}));\\
+(\\
+\quad \mathbf{produce\_lem\_ptr\_chunk}\ \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))(\mathsf{op})\ \{\\
+\quad\quad \mathbf{open}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2});\\
+\quad\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad\quad \mathsf{op}();\\
+\quad\quad *\mathsf{g1} \leftarrow_\mathsf{g} 1;\\
+\quad\quad \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad\quad \mathbf{close}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})\\
+\quad \};\\
+\quad \mathbf{close}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2});\\
+\quad \mathbf{FAA}(\mathsf{x}, 1);\\
+\quad \mathbf{open}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})\\
+||\\
+\quad \mathbf{produce\_lem\_ptr\_chunk}\ \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))(\mathsf{op})\ \{\\
+\quad\quad \mathbf{open}\ \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2});\\
+\quad\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad\quad \mathsf{op}();\\
+\quad\quad *\mathsf{g2} \leftarrow_\mathsf{g} 1;\\
+\quad\quad \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad\quad \mathbf{close}\ \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})\\
+\quad \};\\
+\quad \mathbf{close}\ \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2});\\
+\quad \mathbf{FAA}(\mathsf{x}, 1);\\
+\quad \mathbf{open}\ \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})\\
+);\\
+\mathbf{destroy\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\mathbf{open}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2});\\
+\mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
+\mathbf{assert}\ \mathsf{v} = 2
+\end{array}$$
+\caption{An example using a function as a value and fine-grained concurrency}\label{fig:example}
+\end{figure}
+
+\end{document}
