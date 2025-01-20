@@ -119,19 +119,37 @@ We say a configuration is \emph{finished} if its command is a value.
 $$\mathsf{finished}\,(h, v)$$
 We say a configuration is \emph{okay} if each thread is either reducible or finished.
 $$\inferrule{
-\forall c_\mathsf{t} \in \mathsf{threads}(c).\;\mathsf{finished}\,(h, c) \lor \mathsf{red}\,(h, c)
+\forall c_\mathsf{t} \in \mathsf{threads}(c).\;\mathsf{finished}\,(h, c_\mathsf{t}) \lor \mathsf{red}\,(h, c_\mathsf{t})
 }{
 \mathsf{ok}\,(h, c)
 }$$
 We say a configuration is \emph{safe} if each configuration reachable from it is okay.
 $$\inferrule{
-\forall h', c'.\;(h, c) \rightarrow^* (h', c') \Rightarrow \mathsf{okay}\,(h', c')
+\forall h', c'.\;(h, c) \rightarrow^* (h', c') \Rightarrow \mathsf{ok}\,(h', c')
 }{
 \mathsf{safe}\,(h, c)
 }$$
-We say a program $c$ is safe if $(\emptyset, c)$ is safe. The goal of the logic we present here is to prove that a given program is safe. This implies that it does not access unallocated memory and that there are no assertion failures.
+We say a program $c$ is safe if $(\emptyset, c)$ is safe. The goal of the logic we present here is to prove that a given program is safe. This implies that it does not access unallocated memory and that there are no assertion failures.\footnote{In fact, the logic also proves that there are no data races, but for simplicity we do not consider data races here.}
 
 \section{Annotated programs}
+
+\begin{figure}
+$$\begin{array}{r @{\;} l}
+& t \in \mathcal{T}, p \in \mathcal{P}, g \in \mathcal{G}, \pi \in \mathbb{R}^+\\
+E ::= & z\ |\ x\ |\ g\ |\ E + E\ |\ p(\overline{E})\ |\ (E, E)\ |\ ()\ |\ \emptyset\ |\ \{E\}\ |\ E \cup E\\
+a ::= & [\pi]E \mapsto E\ |\ [\pi]E \gmapsto E\ |\ E()\ |\ [\pi]\mathbf{atomic\_space}(E, E)\ |\ E : t(\overline{E})\\
+| & \exists g.\;a\ |\ \mathbf{atomic\_spaces}(E)\\
+\mathit{gdecl} ::= & \mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a\\
+| & \mathbf{pred\_ctor}\ p(\overline{g})() = a\\
+C ::= & c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})\\
+| & \mathbf{gcons}(E)\ |\ {*}E \leftarrow_\mathsf{g} E\\
+| & \mathbf{open}\ E()\ |\ \mathbf{close}\ E()\\
+| & \mathbf{create\_atomic\_space}(E, E)\ |\ \mathbf{destroy\_atomic\_space}(E, E)\\
+| & \mathbf{open\_atomic\_space}(E, E)\ |\ \mathbf{close\_atomic\_space}(E, E)\\
+| & \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}\\
+\end{array}$$
+\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$}
+\end{figure}
 
 \begin{figure}
 $$\ghost{\begin{array}{@{} l @{}}
@@ -150,7 +168,6 @@ $$\ghost{\begin{array}{@{} l @{}}
 \begin{figure}
 $$\begin{array}{l}
 \ghost{\begin{array}{@{} l @{}}
-\mathbf{fix}\ \mathsf{Nx}() = \mathsf{cons}(0, \mathsf{nil})\\
 \mathbf{pred\_ctor}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = \exists \mathsf{v1}, \mathsf{v2}.\;[1/2]\mathsf{g1} \gmapsto \mathsf{v1} * [1/2]\mathsf{g2} \gmapsto \mathsf{v2} * \mathsf{x} \mapsto \mathsf{v1} + \mathsf{v2}\\
 \mathbf{pred\_ctor}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 0\\
 \mathbf{pred\_ctor}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})() = [1/2]\mathbf{atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})) * [1/2]\mathsf{g1} \gmapsto 1\\
@@ -197,7 +214,7 @@ $$\begin{array}{l}
 \mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
 \mathbf{assert}\ \mathsf{v} = 2
 \end{array}$$
-\caption{VeriFast proof of the example program}\label{fig:example-proof}
+\caption{VeriFast proof of the example program. $\mathsf{Nx} \triangleq ()$.}\label{fig:example-proof}
 \end{figure}
 
 \begin{figure}
