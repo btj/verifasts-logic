@@ -134,19 +134,30 @@ We say a program $c$ is safe if $(\emptyset, c)$ is safe. The goal of the logic 
 \section{Annotated programs}
 
 \begin{figure}
-$$\begin{array}{r @{\;} l}
-& t \in \mathcal{T}, p \in \mathcal{P}, g \in \mathcal{G}, \pi \in \mathbb{R}^+\\
-E ::= & z\ |\ x\ |\ g\ |\ E + E\ |\ p(\overline{E})\ |\ (E, E)\ |\ ()\ |\ \emptyset\ |\ \{E\}\ |\ E \cup E\\
-a ::= & [\pi]E \mapsto E\ |\ [\pi]E \gmapsto E\ |\ E()\ |\ [\pi]\mathbf{atomic\_space}(E, E)\ |\ E : t(\overline{E})\\
-| & \exists g.\;a\ |\ \mathbf{atomic\_spaces}(E)\\
-\mathit{gdecl} ::= & \mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a\\
+$$\begin{array}{r @{\;} l r}
+& t \in \mathcal{T} & \textrm{lemma type names}\\
+& p \in \mathcal{P} & \textrm{predicate constructor names}\\
+& g \in \mathcal{G} & \textrm{ghost variable names}\\
+& \pi \in \mathbb{R}^+ & \textrm{fractions}\\
+\textrm{ghost expressions $E$} ::= & z\ |\ x\ |\ g\ |\ E + E\\
+| & p(\overline{E}) & \textrm{predicate constructor applications}\\
+| & (E, E)\ |\ () & \textrm{pair expressions, empty tuple}\\
+| & \emptyset\ |\ \{E\}\ |\ E \cup E & \textrm{set expressions}\\
+\textrm{assertions $a$} ::= & [\pi]E \mapsto E & \textrm{points-to assertions}\\
+| & [\pi]E \gmapsto E & \textrm{ghost cell points-to assertions}\\
+| & E() & \textrm{predicate assertions}\\
+| & [\pi]\mathbf{atomic\_space}(E, E) & \textrm{atomic space assertions}\\
+| & E : t(\overline{E}) & \textrm{lemma type assertions}\\
+| & \exists g.\;a\\
+| & \mathbf{atomic\_spaces}(E) & \textrm{atomic spaces assertions}\\
+\mathit{gdecl} ::= & \multicolumn{2}{@{} l @{}}{\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a}\\
 | & \mathbf{pred\_ctor}\ p(\overline{g})() = a\\
-C ::= & c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})\\
+C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})}\\
 | & \mathbf{gcons}(E)\ |\ {*}E \leftarrow_\mathsf{g} E\\
 | & \mathbf{open}\ E()\ |\ \mathbf{close}\ E()\\
-| & \mathbf{create\_atomic\_space}(E, E)\ |\ \mathbf{destroy\_atomic\_space}(E, E)\\
-| & \mathbf{open\_atomic\_space}(E, E)\ |\ \mathbf{close\_atomic\_space}(E, E)\\
-| & \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}\\
+| & \multicolumn{2}{@{} l @{}}{\mathbf{create\_atomic\_space}(E, E)\ |\ \mathbf{destroy\_atomic\_space}(E, E)}\\
+| & \multicolumn{2}{@{} l @{}}{\mathbf{open\_atomic\_space}(E, E)\ |\ \mathbf{close\_atomic\_space}(E, E)}\\
+| & \multicolumn{2}{@{} l @{}}{\mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}}\\
 \end{array}$$
 \caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$}
 \end{figure}
