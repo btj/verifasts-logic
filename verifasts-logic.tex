@@ -1,6 +1,8 @@
 \documentclass{article}
 
 \usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{mathpartir}
 
 \title{VeriFast's separation logic: a higher-order(ish) logic without laters for modular verification of fine-grained concurrent programs}
 
@@ -14,6 +16,9 @@
 \newcommand{\annot}[1]{{\color{blue} #1}}
 \newcommand{\ghost}[1]{{\color{ghost} #1}}
 
+\newcommand{\llbrace}{\{\hspace{-3pt}[}
+\newcommand{\rrbrace}{]\hspace{-3pt}\}}
+
 \begin{document}
 
 \maketitle
@@ -23,6 +28,8 @@ We present the separation logic of our VeriFast tool for modular verification of
 \end{abstract}
 
 \section{Programming language}
+
+In order to focus on the complexities of the logic rather than those of the programming language, we present VeriFast's separation logic in the context of a trivial concurrent programming language whose syntax is given in Fig.~\ref{fig:program-syntax} and whose small-step operational semantics is given in Fig.~\ref{fig:program-steps}. An example program that allocates a memory cell, increments it twice in parallel, and then asserts that the cell's value equals two is shown in Fig.~\ref{fig:example}.
 
 \begin{figure}
 $$\begin{array}{l}
@@ -39,6 +46,94 @@ $$\begin{array}{l}
 \end{figure}
 
 \begin{figure}
+$$\begin{array}{r @{\;} @{\;} l}
+& z \in \mathbb{Z}, x \in \mathcal{X}\\
+e ::= & z\ |\ x\\
+c ::= & e\ |\ \mathbf{cons}(e)\ |\ \mathbf{FAA}(e, e)\ |\ {*}e\ |\ \mathbf{assert}\ e = e\\
+| & \mathbf{let}\ x = c\ \mathbf{in}\ c\ |\ (c\;||\;c)
+\end{array}$$
+\caption{Syntax of the expressions $e$ and commands $c$ of the programming language. We assume a set $\mathcal{X}$ of program variable names. $c; c'$ is a shorthand for $\mathbf{let}\ \_ = c\ \mathbf{in}\ c'$, where $\_$ is a designated element of $\mathcal{X}$}\label{fig:program-syntax}
+\end{figure}
+
+\begin{figure}
+\begin{mathpar}
+\inferrule{
+\ell \notin \mathrm{dom}\,h
+}{
+(h, \mathbf{cons}(v)) \rightarrow (h[\ell := v], \ell)
+}
+\and
+\inferrule{
+\ell \in \mathrm{dom}\,h
+}{
+(h, \mathbf{FAA}(\ell, z) \rightarrow (h[\ell := h(\ell) + z], h(\ell))
+}
+\and
+\inferrule{
+\ell \in \mathrm{dom}\,h
+}{
+(h, {*}\ell) \rightarrow (h, h(\ell))
+}
+\and
+(h, \mathbf{assert}\ v = v) \rightarrow (h, 0)
+\and
+(h, \mathbf{let}\ x = v\ \mathbf{in}\ c) \rightarrow (h, c[v/x])
+\and
+\inferrule{
+(h, c) \rightarrow (h', c')
+}{
+(h, \mathbf{let}\ x = c\ \mathbf{in}\ c'') \rightarrow (h, \mathbf{let}\ x = c'\ \mathbf{in}\ c'')
+}
+\and
+\inferrule{
+(h, c) \rightarrow (h', c')
+}{
+(h, (c\;||\;c'')) \rightarrow (h', (c'\;||\;c''))
+}
+\and
+\inferrule{
+(h, c) \rightarrow (h', c')
+}{
+(h, (c''\;||\;c)) \rightarrow (h', (c''\;||\;c'))
+}
+\and
+(h, v\;||\;v') \rightarrow (h, 0)
+\end{mathpar}
+\caption{Small-step operational semantics of the programming language}\label{fig:program-steps}
+\end{figure}
+
+We define the multiset of threads of a command $c$ as follows:
+$$\mathsf{threads}(c) = \left\{\begin{array}{l l}
+\mathsf{threads}(c_1) & \textrm{if $c = \mathbf{let}\ x = c_1\ \mathbf{in}\ c_2$}\\
+\mathsf{threads}(c_1) \uplus \mathsf{threads}(c_2) & \textrm{if $c = (c_1\;||\;c_2)$}\\
+\llbrace c\rrbrace & \textrm{otherwise}
+\end{array}\right.$$
+
+We say a configuration $(h, c)$ is \emph{reducible} if it can make a step:
+$$\inferrule{
+(h, c) \rightarrow (h', c')
+}{
+\mathsf{red}\,(h, c)
+}$$
+We say a configuration is \emph{finished} if its command is a value.
+$$\mathsf{finished}\,(h, v)$$
+We say a configuration is \emph{okay} if each thread is either reducible or finished.
+$$\inferrule{
+\forall c_\mathsf{t} \in \mathsf{threads}(c).\;\mathsf{finished}\,(h, c) \lor \mathsf{red}\,(h, c)
+}{
+\mathsf{ok}\,(h, c)
+}$$
+We say a configuration is \emph{safe} if each configuration reachable from it is okay.
+$$\inferrule{
+\forall h', c'.\;(h, c) \rightarrow^* (h', c') \Rightarrow \mathsf{okay}\,(h', c')
+}{
+\mathsf{safe}\,(h, c)
+}$$
+We say a program $c$ is safe if $(\emptyset, c)$ is safe. The goal of the logic we present here is to prove that a given program is safe. This implies that it does not access unallocated memory and that there are no assertion failures.
+
+\section{Annotated programs}
+
+\begin{figure}
 $$\ghost{\begin{array}{@{} l @{}}
 \mathbf{lem\_type}\ \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) = \mathbf{lem}()\\
 \quad \mathbf{forall}\ \mathsf{v}\\
@@ -49,7 +144,7 @@ $$\ghost{\begin{array}{@{} l @{}}
 \quad \mathbf{req}\ \mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * \mathsf{pre}()\\
 \quad \mathbf{ens}\ \mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{Q}() * \mathsf{post}()\\
 \end{array}}$$
-\caption{The ghost prelude (built-in ghost declarations)}
+\caption{The ghost prelude (built-in ghost declarations)}\label{fig:prelude}
 \end{figure}
 
 \begin{figure}
@@ -102,7 +197,7 @@ $$\begin{array}{l}
 \mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
 \mathbf{assert}\ \mathsf{v} = 2
 \end{array}$$
-\caption{VeriFast proof of the example program}\label{fig:example}
+\caption{VeriFast proof of the example program}\label{fig:example-proof}
 \end{figure}
 
 \begin{figure}
@@ -170,7 +265,7 @@ $$\begin{array}{l}
 \mathbf{let}\ \mathsf{v} = {*}\mathsf{x}\ \mathbf{in}\\
 \mathbf{assert}\ \mathsf{v} = 2
 \end{array}$$
-\caption{Proof outline for the example proof}\label{fig:example}
+\caption{Proof outline for the example proof}\label{fig:example-outline}
 \end{figure}
 
 \end{document}
