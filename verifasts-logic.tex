@@ -5,6 +5,8 @@
 \usepackage{mathpartir}
 \usepackage{stmaryrd}
 
+\newtheorem{theorem}{Theorem}
+
 \title{VeriFast's separation logic: a higher-order(ish) logic without laters for modular verification of fine-grained concurrent programs}
 
 \author{Bart Jacobs\\
@@ -341,6 +343,18 @@ We define \emph{correctness} of a ghost command with respect to a precondition $
 }{
 \{V : t(\overline{V}) * \llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ V(\overline{V}'')\ \{V : t(\overline{V}) * \llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
 }
+\and
+\inferrule{
+\{P\}\ C\ \{Q\}
+}{
+\{P * R\}\ C\ \{Q * R\}
+}
+\and
+\inferrule{
+\forall V.\;\{P[V/g]\}\ C\ \{Q\}
+}{
+\{\exists g.\;P\}\ C\ \{Q\}
+}
 \end{mathpar}
 
 Note: nesting $\mathbf{produce\_lem\_ptr\_chunk}$ commands is not allowed.
@@ -355,6 +369,8 @@ $$\inferrule{
 }{
 \lambda \overline{g}.\;C : t(\overline{V})
 }$$
+
+A correctness proof outline for the example annotated program is shown in Fig.~\ref{fig:example-outline}.
 
 \begin{figure}
 $$\begin{array}{l}
@@ -423,6 +439,21 @@ $$\begin{array}{l}
 \end{array}$$
 \caption{Proof outline for the example proof}\label{fig:example-outline}
 \end{figure}
+
+We say an annotated program $C$ is \emph{correct} if $\{\mathsf{True}\}\ C\ \{\mathsf{True}\}$.
+
+We define the erasure of an annotated command $C$ to a command $c = \mathsf{erasure}(C)$ as follows:
+$$\begin{array}{r @{\;} l}
+\mathsf{erasure}(c) = & c\\
+\mathsf{erasure}(\mathbf{let}\ x = c\ \mathbf{in}\ C) = & \mathbf{let}\ x = c\ \mathbf{in}\ \mathsf{erasure}(C)\\
+\mathsf{erasure}(\mathbf{glet}\ g = C\ \mathbf{in}\ C') = & \mathsf{erasure}(C')
+\end{array}$$
+
+\begin{theorem}
+If an annotated program $C$ is correct, then its erasure $\mathsf{erasure}(C)$ is safe.
+\end{theorem}
+
+\section{Soundness}
 
 \bibliographystyle{plain}
 \bibliography{verifasts-logic}
