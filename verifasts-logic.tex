@@ -134,6 +134,18 @@ We say a program $c$ is safe if $(\emptyset, c)$ is safe. The goal of the logic 
 
 \section{Annotated programs}
 
+When verifying a program with VeriFast, the user must first insert \emph{annotations}, specifically \emph{ghost declarations} and \emph{ghost commands}, to obtain an \emph{annotated program}. The syntax of ghost declarations and ghost commands is shown in Fig.~\ref{fig:annot-syntax}. An annotated version of the example program is shown in Fig.~\ref{fig:example-proof}. An annotated program may refer to ghost constructs declared in the \emph{VeriFast prelude}, shown in Fig.~\ref{fig:prelude}.
+
+There are two kinds of ghost declarations: \emph{lemma type declarations} and \emph{predicate constructor declarations}. These give meaning to \emph{lemma type names} $t \in \mathcal{T}$ and \emph{predicate constructor names} $p \in \mathcal{P}$. Conceptually, a lemma type is a predicate over a \emph{lemma value} $\lambda \overline{g}.\;C$, a parameterized ghost command. A predicate constructor is a named, parameterized assertion. Applying a predicate constructor to an argument list produces a \emph{predicate value} $p(\overline{V})$.
+
+Besides integers, lemma values, and predicate values, ghost values may be pairs of ghost values, unit values $()$, and finite sets of ghost values.
+
+Resources may be shared among threads using \emph{atomic spaces} (analogous to Iris \emph{invariants} \cite{iris1,iris-ground-up}). An atomic space is (non-uniquely) identified by a \emph{name} (any ghost value) and an \emph{invariant} (a predicate value) (but there may be multiple atomic spaces with the same name and invariant at any given time). At any point in time, ownership of the stock of logical resources in the system is distributed among the threads and the atomic spaces. That is, at any point, each logical resource is owned either by exactly one thread or by exactly one atomic space, or has been leaked irrecoverably. (More precisely, given that fractional resources are supported, the bundles of resources owned by the threads and the atomic spaces sum up to a logic heap that contains each physical points-to chunk only once and each $\mathbf{atomic\_space}$ chunk only as many times as there atomic spaces with that name and invariant, etc.) Creating an atomic space transfers a bundle of resources satisfying the atomic space's invariant from the creating thread to the newly created atomic space. Opening an atomic space transfers the resources owned by the atomic space to the opening thread; closing an atomic space again transfers a bundle of resources satisfying the atomic space's invariant from the closing thread to the atomic space. Destroying an atomic space transfers ownership of the resources owned by the atomic space to the destroying thread. To destroy an atomic space, the destroying thread must have full ownership of the atomic space. To open it, only partial ownership is required. (To close it, no ownership is required. If no such atomic space exists, the resources are leaked.) To prevent the same atomic space from being opened when it is already open, the set of opened atomic spaces is tracked using an $\mathbf{atomic\_spaces}(S)$ chunk, where $S$ is a set of the name-invariant pairs of the atomic spaces that are currently open.\footnote{This means it is not possible to open two atomic spaces with the same name-invariant pair at at the same time, even if multiple such atomic spaces exist.}
+
+Lemma type assertions assert that a given lemma value is of a given lemma type, applied to a given lemma type argument list. Such assertions are \emph{linear}. To call a lemma, a full lemma type chunk for that lemma must be available, and it becomes unavailable for the duration of the call. A lemma type chunk is produced by the $\mathbf{produce\_lem\_ptr\_chunk}$ ghost command. Since that command is not allowed inside lemmas, the stock of lemma type chunks in the system only decreases as the lemma call stack grows; absence of infinite lemma recursion follows trivially.\footnote{This is a simplification with respect to the actual VeriFast tool, which does support production of lemma type chunks inside lemmas, using a variant of the $\mathbf{produce\_lem\_ptr\_chunk}$ syntax that additionally takes a block of ghost code. The chunk is available only until the end of that block. Now, suppose there is an infinite lemma call stack. Since the program text contains only finitely many $\mathbf{produce\_lem\_ptr\_chunk}$ commands, among the lemmas that appear infinitely often in that call stack, there is one that is syntactically maximal, i.e. that is not itself contained within another lemma that also appears infinitely often. It follows that from some point on, the call stack contains no lemmas bigger than this maximal one. Since a lemma type chunk for a given lemma can only be produced by a bigger lemma (since the latter's body must contain a $\mathbf{produce\_lem\_ptr\_chunk}$ command producing the former's), the stock of lemma type chunks for this maximal lemma will, from that point on, only decrease, which leads to a contradiction. (Note: for measuring the size of a lemma, the size of contained lemma \emph{values} is not taken into account. It follows that substitution of values for ghost variables never affects the size of a lemma.)}
+
+Intermediate results produced by ghost commands can be stored in \emph{ghost variables}, which are like program variables except that they are in a separate namespace and can therefore never hide a program variable.\footnote{In the actual VeriFast tool, they are in the same namespace, but VeriFast checks that real code never uses a ghost variable.} To facilitate reasoning about concurrent programs, annotated programs can furthermore allocate \emph{ghost cells}; these are like physical memory locations except that they are allocated in a separate \emph{ghost heap} and mutated using separate \emph{ghost cell mutation commands}.
+
 \begin{figure}
 $$\begin{array}{r @{\;} l r}
 & t \in \mathcal{T} & \textrm{lemma type names}\\
@@ -165,7 +177,7 @@ C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}}\\
 | & \internal{E \leftarrow_\mathsf{h} E} & \textrm{heap chunk update}\\
 \end{array}$$
-\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$. Heap chunk assertions and heap chunk update commands are \emph{internal}; they are not accepted by VeriFast in source code and are introduced here only for the sake of the soundness proof.}
+\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$. Heap chunk assertions and heap chunk update commands are \emph{internal}; they are not accepted by VeriFast in source code and are introduced here only for the sake of the soundness proof.}\label{fig:annot-syntax}
 \end{figure}
 
 \begin{figure}
@@ -301,5 +313,8 @@ $$\begin{array}{l}
 \end{array}$$
 \caption{Proof outline for the example proof}\label{fig:example-outline}
 \end{figure}
+
+\bibliographystyle{plain}
+\bibliography{verifasts-logic}
 
 \end{document}
