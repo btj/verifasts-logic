@@ -3,6 +3,7 @@
 \usepackage{xcolor}
 \usepackage{amssymb}
 \usepackage{mathpartir}
+\usepackage{stmaryrd}
 
 \title{VeriFast's separation logic: a higher-order(ish) logic without laters for modular verification of fine-grained concurrent programs}
 
@@ -146,6 +147,8 @@ Lemma type assertions assert that a given lemma value is of a given lemma type, 
 
 Intermediate results produced by ghost commands can be stored in \emph{ghost variables}, which are like program variables except that they are in a separate namespace and can therefore never hide a program variable.\footnote{In the actual VeriFast tool, they are in the same namespace, but VeriFast checks that real code never uses a ghost variable.} To facilitate reasoning about concurrent programs, annotated programs can furthermore allocate \emph{ghost cells}; these are like physical memory locations except that they are allocated in a separate \emph{ghost heap} and mutated using separate \emph{ghost cell mutation commands}.
 
+Points-to chunks, ghost points-to chunks, and atomic spaces can be owned \emph{fractionally}, which allows them to be shared temporarily or permanently among multiple threads. A \emph{fractional chunk} has a \emph{coefficient} which is a positive real number.
+
 \begin{figure}
 $$\begin{array}{r @{\;} l r}
 & t \in \mathcal{T} & \textrm{lemma type names}\\
@@ -167,6 +170,7 @@ $$\begin{array}{r @{\;} l r}
 | & \exists g.\;a\\
 | & \mathbf{atomic\_spaces}(E) & \textrm{atomic spaces assertions}\\
 | & \internal{\mathbf{heap}(E)} & \textrm{heap chunk assertions}\\
+| & a * a & \textrm{separating conjunctions}\\
 \mathit{gdecl} ::= & \multicolumn{2}{@{} l @{}}{\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a}\\
 | & \mathbf{pred\_ctor}\ p(\overline{g})() = a\\
 C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})}\\
@@ -245,6 +249,112 @@ $$\begin{array}{l}
 \end{array}$$
 \caption{VeriFast proof of the example program. $\mathsf{Nx} \triangleq ()$.}\label{fig:example-proof}
 \end{figure}
+
+\subsection{Meaning of assertions}
+
+To define the meaning of assertions, we first define the concept of a \emph{logical chunk} $\alpha$:
+$$\alpha ::= V \mapsto V\ |\ V \mapsto_\mathsf{g} V\ |\ \mathbf{atomic\_space}(V, V)\ |\ V : t(\overline{V})\ |\ \mathbf{atomic\_spaces}(V)\ |\ \mathbf{heap}(V)$$
+A \emph{logical heap} $H$ is a function from logical chunks to nonnegative real numbers:
+$$H \in \mathit{LogicalHeaps} = \mathit{LogicalChunks} \rightarrow \mathbb{R}^+$$
+
+We say a logical heap is \emph{weakly consistent}, denoted $\mathsf{wok}\;H$ if no points-to chunk or ghost points-to chunk is present with a coefficient greater than 1, or two (fractions of) points-to chunks or two (fractions of) ghost points-to chunks are present with the same left-hand side (address) but a different right-hand side (stored value).
+
+We define \emph{satisfaction} of an assertion $a$ by a logical heap $H$, denoted $H \vDash a$, as follows:
+\begin{mathpar}
+\inferrule{
+H(\alpha) \ge \pi
+}{
+H \vDash [\pi]\alpha
+}
+\and
+\inferrule{
+\mathbf{pred\_ctor}\ p(\overline{g})() = a\\
+|\overline{V}| = |\overline{g}|\\
+H \vDash a[\overline{V}/\overline{g}]
+}{
+H \vDash p(\overline{V})()
+}
+\and
+\inferrule{
+H \vDash a[V/g]
+}{
+H \vDash \exists g.\;a
+}
+\and
+\inferrule{
+H \vDash a\\
+H' \vDash a'
+}{
+H + H' \vDash a * a'
+}
+\end{mathpar}
+
+A \emph{semantic assertion} $A$ is a set of logical heaps. We define the \emph{interpretation} $\llbracket a\rrbracket$ of an assertion as a semantic assertion as $\llbracket a\rrbracket = \{H\ |\ H\vDash a\}$.
+
+We define \emph{correctness} of a ghost command with respect to a precondition $P$ and a postcondition $Q$ (both semantic assertions), denoted $\{P\}\ C\ \{Q\}$, inductively as follows:
+\begin{mathpar}
+\{\mathsf{True}\}\ \mathbf{cons}(V)\ \{\mathsf{res} \mapsto V\}
+\and
+\{[\pi]\ell \mapsto V\}\ {*}\ell\ \{[\pi]\ell \mapsto V \land \mathsf{res} = V\}
+\and
+\{\ell \mapsto V\}\ \ell \leftarrow V'\ \{\ell \mapsto V'\}
+\and
+\{\mathsf{True}\}\ \mathbf{gcons}(V)\ \{\mathsf{res} \gmapsto V\}
+\and
+\{\ell \gmapsto V\}\ \ell \leftarrow_\mathsf{g} V'\ \{\ell \gmapsto V'\}
+\and
+\{\llbracket p(\overline{V})()\rrbracket\}\ \mathbf{open}\ p(\overline{V})()\ \{\llbracket p(\overline{V})()\rrbracket\}
+\and
+\{\llbracket p(\overline{V})()\rrbracket\}\ \mathbf{close}\ p(\overline{V})()\ \{\llbracket p(\overline{V})()\rrbracket\}
+\and
+\{\llbracket V'()\rrbracket\}\ \mathbf{create\_atomic\_space}(V, V')\ \{\mathbf{atomic\_space}(V, V')\}
+\and
+\inferrule{
+(V, V') \notin S
+}{
+\begin{array}{l}
+\{\mathbf{atomic\_spaces}(S) * [\pi]\mathbf{atomic\_space}(V, V')\}\cr
+\mathbf{open\_atomic\_space}(V, V')\cr
+\{\mathbf{atomic\_spaces}(S \cup \{(V, V')\}) * [\pi]\mathbf{atomic\_space}(V, V') * \llbracket V'()\rrbracket\}
+\end{array}
+}
+\and
+\begin{array}{l}
+\{\mathbf{atomic\_spaces}(S) * \llbracket V'()\rrbracket\}\cr
+\mathbf{close\_atomic\_space}(V, V')\cr
+\{\mathbf{atomic\_spaces}(S \setminus \{(V, V')\})\}
+\end{array}
+\and
+\{\mathbf{atomic\_space}(V, V')\}\ \mathbf{destroy\_atomic\_space}(V, V')\ \{\llbracket V'()\rrbracket\}
+\and
+\inferrule{
+\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g}')\ \mathbf{req}\ a\ \mathbf{ens}\ a'\\
+|\overline{V}| = \overline{g}|\\
+|\overline{g}''| = \overline{g}'|\\
+\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}'| \Rightarrow \{\llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ C[\overline{V}'/\overline{g}'']\ \{\llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
+}{
+\{\mathsf{True}\}\ \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{V})(\overline{g}'')\ \{\ C\ \}\ \{\mathsf{res} : t(\overline{V})\}
+}
+\and
+\inferrule{
+\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g}')\ \mathbf{req}\ a\ \mathbf{ens}\ a'
+}{
+\{V : t(\overline{V}) * \llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ V(\overline{V}'')\ \{V : t(\overline{V}) * \llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
+}
+\end{mathpar}
+
+Note: nesting $\mathbf{produce\_lem\_ptr\_chunk}$ commands is not allowed.
+
+We say a logical heap is \emph{strongly consistent}, denoted $\mathsf{sok}\;H$, if, for every $V : t(\overline{V})$ such that $H(V : t(\overline{V})) > 0$, we have
+that $V$ semantically is of type $t(\overline{V})$, denoted $\vDash V : t(\overline{V})$, defined as follows:
+$$\inferrule{
+\mathbf{lem\_type}\ t(\overline{g}')(\overline{g}'')\ \mathbf{req}\ a\ \mathbf{ens}\ a''\\
+|\overline{V}| = |\overline{g}'|\\
+|\overline{g}| = |\overline{g}''|\\
+\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}| \Rightarrow \{\llbracket a[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}\ C[\overline{V}'/\overline{g}]\ \{\llbracket a'[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}
+}{
+\lambda \overline{g}.\;C : t(\overline{V})
+}$$
 
 \begin{figure}
 $$\begin{array}{l}
