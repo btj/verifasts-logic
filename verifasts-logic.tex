@@ -15,6 +15,7 @@
 \newcommand{\gmapsto}{\mapsto_\mathsf{g}}
 \newcommand{\annot}[1]{{\color{blue} #1}}
 \newcommand{\ghost}[1]{{\color{ghost} #1}}
+\newcommand{\internal}[1]{{\color{purple} #1}}
 
 \newcommand{\llbrace}{\{\hspace{-3pt}[}
 \newcommand{\rrbrace}{]\hspace{-3pt}\}}
@@ -145,7 +146,7 @@ $$\begin{array}{r @{\;} l r}
 \textrm{ghost expressions $E$} ::= & V\ |\ x\ |\ g\ |\ E + E\\
 | & p(\overline{E}) & \textrm{predicate constructor applications}\\
 | & (E, E)\ |\ () & \textrm{pair expressions, empty tuple}\\
-| & \emptyset\ |\ \{E\}\ |\ E \cup E & \textrm{set expressions}\\
+| & \emptyset\ |\ \{E\}\ |\ E \cup E\ |\ E \setminus E & \textrm{set expressions}\\
 \textrm{assertions $a$} ::= & [\pi]E \mapsto E & \textrm{points-to assertions}\\
 | & [\pi]E \gmapsto E & \textrm{ghost cell points-to assertions}\\
 | & E() & \textrm{predicate assertions}\\
@@ -153,6 +154,7 @@ $$\begin{array}{r @{\;} l r}
 | & E : t(\overline{E}) & \textrm{lemma type assertions}\\
 | & \exists g.\;a\\
 | & \mathbf{atomic\_spaces}(E) & \textrm{atomic spaces assertions}\\
+| & \internal{\mathbf{heap}(E)} & \textrm{heap chunk assertions}\\
 \mathit{gdecl} ::= & \multicolumn{2}{@{} l @{}}{\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a}\\
 | & \mathbf{pred\_ctor}\ p(\overline{g})() = a\\
 C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})}\\
@@ -161,8 +163,9 @@ C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{create\_atomic\_space}(E, E)\ |\ \mathbf{destroy\_atomic\_space}(E, E)}\\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{open\_atomic\_space}(E, E)\ |\ \mathbf{close\_atomic\_space}(E, E)}\\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}}\\
+| & \internal{E \leftarrow_\mathsf{h} E} & \textrm{heap chunk update}\\
 \end{array}$$
-\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$}
+\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$. Heap chunk assertions and heap chunk update commands are \emph{internal}; they are not accepted by VeriFast in source code and are introduced here only for the sake of the soundness proof.}
 \end{figure}
 
 \begin{figure}
