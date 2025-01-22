@@ -53,10 +53,10 @@ $$\begin{array}{l}
 $$\begin{array}{r @{\;} @{\;} l}
 & z \in \mathbb{Z}, x \in \mathcal{X}\\
 e ::= & z\ |\ x\\
-c ::= & e\ |\ \mathbf{cons}(e)\ |\ \mathbf{FAA}(e, e)\ |\ {*}e\ |\ \mathbf{assert}\ e = e\\
-| & \mathbf{let}\ x = c\ \mathbf{in}\ c\ |\ (c\;||\;c)
+i ::= & \mathbf{cons}(e)\ |\ \mathbf{FAA}(e, e)\ |\ {*}e\ |\ \mathbf{assert}\ e = e\\
+c ::= & e\ |\ i\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ c\ |\ (c\;||\;c)
 \end{array}$$
-\caption{Syntax of the expressions $e$ and commands $c$ of the programming language. We assume a set $\mathcal{X}$ of program variable names. $c; c'$ is a shorthand for $\mathbf{let}\ \_ = c\ \mathbf{in}\ c'$, where $\_$ is a designated element of $\mathcal{X}$}\label{fig:program-syntax}
+\caption{Syntax of the expressions $e$, instructions $i$, and commands $c$ of the programming language. We assume a set $\mathcal{X}$ of program variable names. $c; c'$ is a shorthand for $\mathbf{let}\ \_ = c\ \mathbf{in}\ c'$, where $\_$ is a designated element of $\mathcal{X}$}\label{fig:program-syntax}
 \end{figure}
 
 \begin{figure}
@@ -159,7 +159,7 @@ $$\begin{array}{r @{\;} l r}
 & \pi \in \mathbb{R}^+ & \textrm{fractions}\\
 \textrm{ghost values $V$} ::= & z\ |\ (V, V)\ |\ ()\ |\ \{\overline{V}\}\\
 | & p(\overline{V}) & \textrm{predicate values}\\
-| & \lambda \overline{g}.\;C & \textrm{lemma values}\\
+| & \lambda \overline{g}.\;G & \textrm{lemma values}\\
 \textrm{ghost expressions $E$} ::= & V\ |\ x\ |\ g\ |\ E + E\\
 | & p(\overline{E}) & \textrm{predicate constructor applications}\\
 | & (E, E)\ |\ () & \textrm{pair expressions, empty tuple}\\
@@ -175,15 +175,17 @@ $$\begin{array}{r @{\;} l r}
 | & a * a & \textrm{separating conjunctions}\\
 \mathit{gdecl} ::= & \multicolumn{2}{@{} l @{}}{\mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g})\ \mathbf{forall}\ \overline{g}\ \mathbf{req}\ a\ \mathbf{ens}\ a}\\
 | & \mathbf{pred\_ctor}\ p(\overline{g})() = a\\
-C ::= & \multicolumn{2}{@{} l @{}}{c\ |\ \mathbf{let}\ x = c\ \mathbf{in}\ C\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ C\ |\ E(\overline{E})}\\
+I ::= & E(\overline{E})\\
 | & \mathbf{gcons}(E)\ |\ {*}E \leftarrow_\mathsf{g} E\\
 | & \mathbf{open}\ E()\ |\ \mathbf{close}\ E()\\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{create\_atomic\_space}(E, E)\ |\ \mathbf{destroy\_atomic\_space}(E, E)}\\
 | & \multicolumn{2}{@{} l @{}}{\mathbf{open\_atomic\_space}(E, E)\ |\ \mathbf{close\_atomic\_space}(E, E)}\\
-| & \multicolumn{2}{@{} l @{}}{\mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ C\ \}}\\
 | & \internal{E \leftarrow_\mathsf{h} E} & \textrm{heap chunk update}\\
+G ::= & I\ |\ \mathbf{glet}_\mathsf{i}\ g = G\ \mathbf{in}\ G\\
+C ::= & \multicolumn{2}{@{} l @{}}{G\ |\ \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{E})(\overline{g})\ \{\ G\ \}}\\
+\hat{c} ::= & \multicolumn{2}{@{} l @{}}{e\ |\ i\ |\ \mathbf{let}\ x = \hat{c}\ \mathbf{in}\ \hat{c}\ |\ \hat{c}\ ||\ \hat{c}\ |\ \mathbf{glet}\ g = C\ \mathbf{in}\ \hat{c}}
 \end{array}$$
-\caption{Syntax of ghost declarations $\mathit{gdecl}$ and annotated commands $C$. Heap chunk assertions and heap chunk update commands are \emph{internal}; they are not accepted by VeriFast in source code and are introduced here only for the sake of the soundness proof.}\label{fig:annot-syntax}
+\caption{Syntax of ghost declarations $\mathit{gdecl}$, ghost instructions $I$, inner ghost commands $G$, outer ghost commands $C$ (collectively called \emph{ghost commands}, and annotated commands $\hat{c}$. Heap chunk assertions and heap chunk update commands are \emph{internal}; they are not accepted by VeriFast in source code and are introduced here only for the sake of the soundness proof.}\label{fig:annot-syntax}
 \end{figure}
 
 \begin{figure}
@@ -218,11 +220,11 @@ $$\begin{array}{l}
 (\\
 \quad \ghost{\begin{array}{@{} l @{}}
 \mathbf{produce\_lem\_ptr\_chunk}\ \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))(\mathsf{op})\ \{\\
-\quad \mathbf{open}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\\
-\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\ \mathbf{open}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\\
-\quad \mathsf{op}();\\
-\quad *\mathsf{g1} \leftarrow_\mathsf{g} 1;\\
-\quad \mathbf{close}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\ \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad \mathbf{open}\ \mathsf{pre1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\\
+\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\ \mathbf{open}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\\
+\quad \mathsf{op}();_\mathsf{i}\\
+\quad *\mathsf{g1} \leftarrow_\mathsf{g} 1;_\mathsf{i}\\
+\quad \mathbf{close}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\ \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));_\mathsf{i}\\
 \quad \mathbf{close}\ \mathsf{post1}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()\\
 \};
 \end{array}}\\
@@ -232,11 +234,11 @@ $$\begin{array}{l}
 ||\\
 \quad \ghost{\begin{array}{@{} l @{}}
 \mathbf{produce\_lem\_ptr\_chunk}\ \mathsf{FAA\_ghop}(\mathsf{x}, 1, \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}), \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}))(\mathsf{op})\ \{\\
-\quad \mathbf{open}\ \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\\
-\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\ \mathbf{open}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\\
-\quad \mathsf{op}();\\
-\quad *\mathsf{g2} \leftarrow_\mathsf{g} 1;\\
-\quad \mathbf{close}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();\ \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\\
+\quad \mathbf{open}\ \mathsf{pre2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\\
+\quad \mathbf{open\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));\ \mathbf{open}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\\
+\quad \mathsf{op}();_\mathsf{i}\\
+\quad *\mathsf{g2} \leftarrow_\mathsf{g} 1;_\mathsf{i}\\
+\quad \mathbf{close}\ \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})();_\mathsf{i}\ \mathbf{close\_atomic\_space}(\mathsf{Nx}, \mathsf{Inv}(\mathsf{x}, \mathsf{g1}, \mathsf{g2}));_\mathsf{i}\\
 \quad \mathbf{close}\ \mathsf{post2}(\mathsf{x}, \mathsf{g1}, \mathsf{g2})()\\
 \};
 \end{array}}\\
@@ -254,10 +256,10 @@ $$\begin{array}{l}
 
 \section{Verification of annotated programs}
 
-To define the meaning of assertions, we first define the concept of a \emph{logical chunk} $\alpha$:
+Core to VeriFast's verification approach is the concept of a \emph{chunk} $\alpha$:
 $$\alpha ::= V \mapsto V\ |\ V \mapsto_\mathsf{g} V\ |\ \mathbf{atomic\_space}(V, V)\ |\ V : t(\overline{V})\ |\ \mathbf{atomic\_spaces}(V)\ |\ \mathbf{heap}(V)$$
-A \emph{logical heap} $H$ is a function from logical chunks to nonnegative real numbers:
-$$H \in \mathit{LogicalHeaps} = \mathit{LogicalChunks} \rightarrow \mathbb{R}^+$$
+A \emph{logical heap} $H$ is a function from chunks to nonnegative real numbers:
+$$H \in \mathit{LogicalHeaps} = \mathit{Chunks} \rightarrow \mathbb{R}^+$$
 
 We say a logical heap is \emph{weakly consistent}, denoted $\mathsf{wok}\;H$ if no points-to chunk or ghost points-to chunk is present with a coefficient greater than 1, or two (fractions of) points-to chunks or two (fractions of) ghost points-to chunks are present with the same left-hand side (address) but a different right-hand side (stored value).
 
@@ -293,13 +295,29 @@ H + H' \vDash a * a'
 
 A \emph{semantic assertion} $A$ is a set of logical heaps. We define the \emph{interpretation} $\llbracket a\rrbracket$ of an assertion as a semantic assertion as $\llbracket a\rrbracket = \{H\ |\ H\vDash a\}$.
 
-We define \emph{correctness} of a ghost command with respect to a precondition $P$ and a postcondition $Q$ (both semantic assertions), denoted $\{P\}\ C\ \{Q\}$, inductively as follows:
+We define \emph{correctness} of an annotated command or ghost command $\dot{c}$ with respect to a precondition $P$ and a postcondition $Q$ (both semantic assertions), denoted $\{P\}\ \dot{c}\ \{Q\}$, inductively in Fig.~\ref{fig:correctness}. We define implication of semantic assertions as follows:
+$$P \Rightarrow Q \triangleq \forall H \in P.\;\mathsf{wok}\,H \Rightarrow H \in Q$$
+
+\begin{figure}
 \begin{mathpar}
 \{\mathsf{True}\}\ \mathbf{cons}(V)\ \{\mathsf{res} \mapsto V\}
 \and
 \{[\pi]\ell \mapsto V\}\ {*}\ell\ \{[\pi]\ell \mapsto V \land \mathsf{res} = V\}
 \and
 \{\ell \mapsto V\}\ \ell \leftarrow V'\ \{\ell \mapsto V'\}
+\and
+\begin{array}{l}
+\{V : \mathsf{FAA\_ghop}(\ell, z, V', V'') * \llbracket V'()\rrbracket\}\cr
+\mathbf{FAA}(\ell, z)\cr
+\{V : \mathsf{FAA\_ghop}(\ell, z, V', V'') * \llbracket V''()\rrbracket\}
+\end{array}
+\and
+\inferrule{
+\{P\}\ \hat{c}\ \{Q\}\\
+\{P'\}\ \hat{c}'\ \{Q'\}
+}{
+\{P * P'\}\ \hat{c}\ ||\ \hat{c}'\ \{Q * Q'\}
+}
 \and
 \{\mathsf{True}\}\ \mathbf{gcons}(V)\ \{\mathsf{res} \gmapsto V\}
 \and
@@ -333,9 +351,9 @@ We define \emph{correctness} of a ghost command with respect to a precondition $
 \mathbf{lem\_type}\ t(\overline{g}) = \mathbf{lem}(\overline{g}')\ \mathbf{req}\ a\ \mathbf{ens}\ a'\\
 |\overline{V}| = \overline{g}|\\
 |\overline{g}''| = \overline{g}'|\\
-\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}'| \Rightarrow \{\llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ C[\overline{V}'/\overline{g}'']\ \{\llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
+\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}'| \Rightarrow \{\llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ G[\overline{V}'/\overline{g}'']\ \{\llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
 }{
-\{\mathsf{True}\}\ \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{V})(\overline{g}'')\ \{\ C\ \}\ \{\mathsf{res} : t(\overline{V})\}
+\{\mathsf{True}\}\ \mathbf{produce\_lem\_ptr\_chunk}\ t(\overline{V})(\overline{g}'')\ \{\ G\ \}\ \{\mathsf{res} : t(\overline{V})\}
 }
 \and
 \inferrule{
@@ -345,30 +363,29 @@ We define \emph{correctness} of a ghost command with respect to a precondition $
 }
 \and
 \inferrule{
-\{P\}\ C\ \{Q\}
+\{P\}\ \dot{c}\ \{Q\}
 }{
-\{P * R\}\ C\ \{Q * R\}
+\{P * R\}\ \dot{c}\ \{Q * R\}
 }
 \and
 \inferrule{
-\forall V.\;\{P[V/g]\}\ C\ \{Q\}
+\forall V.\;\{P[V/g]\}\ \dot{c}\ \{Q\}
 }{
-\{\exists g.\;P\}\ C\ \{Q\}
+\{\exists g.\;P\}\ \dot{c}\ \{Q\}
+}
+\and
+\inferrule{
+P \Rightarrow P'\\
+\{P'\}\ \dot{c}\ \{Q\}\\
+Q \Rightarrow Q'
+}{
+\{P\}\ \dot{c}\ \{Q'\}
 }
 \end{mathpar}
+\caption{Correctness of annotated commands and ghost commands. We use $\dot{c}$ to range over both annotated commands and ghost commands.}\label{fig:correctness}
+\end{figure}
 
 Note: nesting $\mathbf{produce\_lem\_ptr\_chunk}$ commands is not allowed.
-
-We say a logical heap is \emph{strongly consistent}, denoted $\mathsf{sok}\;H$, if, for every $V : t(\overline{V})$ such that $H(V : t(\overline{V})) > 0$, we have
-that $V$ semantically is of type $t(\overline{V})$, denoted $\vDash V : t(\overline{V})$, defined as follows:
-$$\inferrule{
-\mathbf{lem\_type}\ t(\overline{g}')(\overline{g}'')\ \mathbf{req}\ a\ \mathbf{ens}\ a''\\
-|\overline{V}| = |\overline{g}'|\\
-|\overline{g}| = |\overline{g}''|\\
-\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}| \Rightarrow \{\llbracket a[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}\ C[\overline{V}'/\overline{g}]\ \{\llbracket a'[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}
-}{
-\lambda \overline{g}.\;C : t(\overline{V})
-}$$
 
 A correctness proof outline for the example annotated program is shown in Fig.~\ref{fig:example-outline}.
 
@@ -454,6 +471,19 @@ If an annotated program $C$ is correct, then its erasure $\mathsf{erasure}(C)$ i
 \end{theorem}
 
 \section{Soundness}
+
+We say a logical heap is \emph{strongly consistent}, denoted $\mathsf{sok}\;H$, if, for every $V : t(\overline{V})$ such that $H(V : t(\overline{V})) > 0$, we have
+that $V$ semantically is of type $t(\overline{V})$, denoted $\vDash V : t(\overline{V})$, defined as follows:
+$$\inferrule{
+\mathbf{lem\_type}\ t(\overline{g}')(\overline{g}'')\ \mathbf{req}\ a\ \mathbf{ens}\ a''\\
+|\overline{V}| = |\overline{g}'|\\
+|\overline{g}| = |\overline{g}''|\\
+\forall \overline{V}'.\;|\overline{V}'| = |\overline{g}| \Rightarrow \{\llbracket a[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}\ G[\overline{V}'/\overline{g}]\ \{\llbracket a'[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}
+}{
+\lambda \overline{g}.\;G : t(\overline{V})
+}$$
+
+
 
 \bibliographystyle{plain}
 \bibliography{verifasts-logic}
