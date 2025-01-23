@@ -4,8 +4,10 @@
 \usepackage{amssymb}
 \usepackage{mathpartir}
 \usepackage{stmaryrd}
+\usepackage{amsthm}
 
 \newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
 
 \title{VeriFast's separation logic: a higher-order(ish) logic without laters for modular verification of fine-grained concurrent programs}
 
@@ -480,10 +482,44 @@ $$\inferrule{
 |\overline{g}| = |\overline{g}''|\\
 \forall \overline{V}'.\;|\overline{V}'| = |\overline{g}| \Rightarrow \{\llbracket a[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}\ G[\overline{V}'/\overline{g}]\ \{\llbracket a'[\overline{V}/\overline{g}', \overline{V}'/\overline{g''}]\rrbracket\}
 }{
-\lambda \overline{g}.\;G : t(\overline{V})
+\vDash \lambda \overline{g}.\;G : t(\overline{V})
 }$$
 
+A \emph{ghost heap} $\hat{h}$ is a partial function from integers to ghost values.
 
+An \emph{atomic spaces bag} $A$ is a multiset of pairs $((V, V), H)$ of name-invariant pairs and logical heaps, such that for each element $((\_, P), H)$ we have $H \vDash P$. We define the atomic space chunks $\mathsf{chunks}(A)$ and the atomic spaces total owned heap $\mathsf{heap}(A)$ as follows:
+$$\mathsf{chunks}(A) = \llbrace \mathbf{atomic\_space}(V, V')\ |\ ((V, V'), \_) \in A\rrbrace$$
+$$\mathsf{heap}(A) = \biguplus_{(\_, H) \in A} H$$
+
+A \emph{stock of lemma type chunks} $\Sigma$ is a multiset of $(V, t, \overline{V})$ tuples. We say such a stock is \emph{consistent} if for each $(V, t, \overline{V})$ in $\Sigma$, $V$ is semantically of type $t(\overline{V})$.
+
+We say a heap $h$ and logical heap $H$ are \emph{consistent with depth bound $k$}, denoted $h \sim_k H$, if there exists a ghost heap $\hat{h}$, an atomic spaces bag $A$, and a consistent stock of lemma type chunks $\Sigma$ of size at most $k$ such that $h + \hat{h} + \mathsf{chunks}(A) + \Sigma \ge \mathsf{heaps}(A) + H$, where a heap is interpreted as a set of $\mapsto$ chunks and a ghost heap is interpreted as a set of $\gmapsto$ chunks. Notice: if $h \sim_k H$, it follows that $H$ is strongly consistent. We say $h$ and $H$ are \emph{consistent}, denoted $h \sim H$, if $\exists k.\;h\sim_k H$.
+
+We define the \emph{weakest precondition} for $n$ steps of a command $c$ with respect to postcondition $Q$, denoted $\mathsf{wp}_n(c, Q)$, as the semantic assertion that is true for a logical heap $H$ if either $n = 0$ or for each heap $h$ and \emph{frame} $H'$ such that $h \sim H + H'$, all threads of $c$ are either finished or reducible and for each step that $(h, c)$ can make to some configuration $(h', c')$, there exists a logical heap $H''$ such that $h' \sim H'' + H'$ and $H''$ satisfies the weakest precondition of $c'$ with respect to $Q$ for $n - 1$ steps:
+$$\mathsf{wp}_n(c, Q) \triangleq \left\{H\ |\ \begin{array}{l}
+n = 0 \lor \forall h, H'.\;h \sim H + H' \Rightarrow (h, c)\,\mathsf{ok} \land {}\\
+\forall h', c'.\;(h, c) \rightarrow (h', c') \Rightarrow \exists H''.\;h' \sim H'' + H' \land H'' \in \mathsf{wp}_{n - 1}(c', Q)
+\end{array}\right\}$$
+
+\begin{lemma}
+$$\{P\}\ G\ \{Q\} \land H \in P \land h \sim_k H + H' \Rightarrow \exists H''.\;H'' \in Q \land h \sim_k H'' + H'$$
+\end{lemma}
+\begin{proof}
+By induction on $k$ and nested induction on the size of $G$. The outer induction hypothesis is used to deal with lemma calls.
+\end{proof}
+
+\begin{lemma}
+If an annotated command $\hat{c}$ is correct with respect to precondition $P$ and postcondition $Q$, then, for all $n$, $P$ implies the weakest precondition of the erasure of $\hat{c}$ with respect to $Q$ for $n$ steps:
+$$\{P\}\ \hat{c}\ \{Q\} \Rightarrow \forall n.\;P \Rightarrow \mathsf{wp}_n(\mathsf{erasure}(\hat{c}), Q)$$
+\end{lemma}
+
+\begin{lemma}
+If for all $n$, the weakest precondition of a command $c$ with respect to postcondition $\mathsf{True}$ for $n$ steps is $\mathsf{True}$, then $c$ is safe.
+\end{lemma}
+
+\begin{theorem}
+If an annotated command $\hat{c}$ satisfies $\{\mathsf{True}\}\ \hat{c}\ \{\mathsf{True}\}$, then $\mathsf{erasure}(\hat{c})$ is safe.
+\end{theorem}
 
 \bibliographystyle{plain}
 \bibliography{verifasts-logic}
