@@ -520,6 +520,16 @@ If for all $n$, the weakest precondition of a command $c$ with respect to postco
 If an annotated command $\hat{c}$ satisfies $\{\mathsf{True}\}\ \hat{c}\ \{\mathsf{True}\}$, then $\mathsf{erasure}(\hat{c})$ is safe.
 \end{theorem}
 
+\section{Comparison with Iris}
+
+In contrast to Iris, the presented logic does not require a \emph{later} modality. This is because atomic space invariants are stored in the logical heap in a \emph{syntactic} form, rather than as propositions over logical heaps. As a result, no recursive domain equations are involved.
+
+A downside of our approach compared to Iris, however, is that our logic does not directly support separating implications (a.k.a.~magic wands), viewshifts, or other logical connectives in which operand assertions appear in \emph{non-positive} positions, i.e.~whose truth is not monotonic in the truth of the operand assertions. This is because we define the meaning of predicate values using a least fixpoint construction.
+
+We recover the functionality of separating implications and viewshifts to some extent by means of lemma values, with the major limitation that lemma type assertions are \emph{linear}, which makes them more awkward to work with than the Iris constructs, although in practice this has not hindered us significantly so far; in fact, while we do vaguely remember encountering cases where this was inconvenient (or worse), we have trouble recalling the specific circumstances.
+
+Having said that, we use VeriFast as a tool for verifying particular programs, not for metatheory development. It is very likely that the limitations our logic would become prohibitive if we attempted to replicate deep metatheory developments such as RustBelt's lifetime logic \cite{rustbelt} in VeriFast. We do, however, make use of the \emph{results} of such developments in VeriFast, through axiomatisation. The soundness of such axiomatisations, however, is a nontrivial question. While our axiomatisation of the lifetime logic \emph{appears} sound, it is future work to build a formal argument of that, perhaps by connecting a Coq mechanisation of the development of the present paper with that of the lifetime logic.
+
 \bibliographystyle{plain}
 \bibliography{verifasts-logic}
 
