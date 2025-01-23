@@ -201,8 +201,9 @@ $$\ghost{\begin{array}{@{} l @{}}
 \quad \mathbf{forall}\ \mathsf{P}, \mathsf{Q}\\
 \quad \mathbf{req}\ \mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{P}() * \mathsf{pre}()\\
 \quad \mathbf{ens}\ \mathbf{atomic\_spaces}(\emptyset) * \mathsf{op} : \mathsf{FAA\_op}(\mathsf{x}, \mathsf{n}, \mathsf{P}, \mathsf{Q}) * \mathsf{Q}() * \mathsf{post}()\\
+\internal{\mathbf{pred\_ctor}\ \mathsf{heap\_}(\mathsf{h})() = \mathbf{heap}(\mathsf{h})}\\
 \end{array}}$$
-\caption{The ghost prelude (built-in ghost declarations)}\label{fig:prelude}
+\caption{The ghost prelude (built-in ghost declarations). The declaration of $\mathsf{heap\_}$ is \emph{internal}. It is not meant to be used in annotated programs; it is introduced here only for the sake of the soundness proof.}\label{fig:prelude}
 \end{figure}
 
 \begin{figure}
@@ -353,6 +354,8 @@ $$P \Rightarrow Q \triangleq \forall H \in P.\;\mathsf{wok}\,H \Rightarrow H \in
 \{V : t(\overline{V}) * \llbracket a[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}\ V(\overline{V}'')\ \{V : t(\overline{V}) * \llbracket a'[\overline{V}/\overline{g},\overline{V}'/\overline{g}']\rrbracket\}
 }
 \and
+\{\mathbf{heap}(h) * \ell \mapsto \_\}\ \ell \leftarrow_\mathsf{h}\ v\ \{\mathsf{heap}(h[\ell := v]) * \ell \mapsto v\}
+\and
 \inferrule{
 \{P\}\ \dot{c}\ \{Q\}
 }{
@@ -482,7 +485,7 @@ $$\mathsf{heap}(A) = \biguplus_{(\_, H) \in A} H$$
 
 A \emph{stock of lemma type chunks} $\Sigma$ is a multiset of $(V, t, \overline{V})$ tuples. We say such a stock is \emph{consistent} if for each $(V, t, \overline{V})$ in $\Sigma$, $V$ is semantically of type $t(\overline{V})$.
 
-We say a heap $h$ and logical heap $H$ are \emph{consistent with depth bound $k$}, denoted $h \sim_k H$, if there exists a ghost heap $\hat{h}$, an atomic spaces bag $A$, and a consistent stock of lemma type chunks $\Sigma$ of size at most $k$ such that $h + \hat{h} + \mathsf{chunks}(A) + \Sigma \ge \mathsf{heaps}(A) + H$, where a heap is interpreted as a set of $\mapsto$ chunks and a ghost heap is interpreted as a set of $\gmapsto$ chunks. Notice: if $h \sim_k H$, it follows that $H$ is strongly consistent. We say $h$ and $H$ are \emph{consistent}, denoted $h \sim H$, if $\exists k.\;h\sim_k H$.
+We say a heap $h$ and logical heap $H$ are \emph{consistent}, denoted $h \sim H$, if there exists a ghost heap $\hat{h}$, an atomic spaces bag $A$, and a consistent stock of lemma type chunks $\Sigma$ such that $h + \hat{h} + \mathsf{chunks}(A) + \Sigma \ge \mathsf{heaps}(A) + H$, where a heap is interpreted as a set of $\mapsto$ chunks and a ghost heap is interpreted as a set of $\gmapsto$ chunks. Notice: if $h \sim H$, it follows that $H$ is strongly consistent.
 
 We define the \emph{weakest precondition} for $n$ steps of a command $c$ with respect to postcondition $Q$, denoted $\mathsf{wp}_n(c, Q)$, as the semantic assertion that is true for a logical heap $H$ if either $n = 0$ or for each heap $h$ and \emph{frame} $H'$ such that $h \sim H + H'$, all threads of $c$ are either finished or reducible and for each step that $(h, c)$ can make to some configuration $(h', c')$, there exists a logical heap $H''$ such that $h' \sim H'' + H'$ and $H''$ satisfies the weakest precondition of $c'$ with respect to $Q$ for $n - 1$ steps:
 $$\mathsf{wp}_n(c, Q) \triangleq \left\{H\ |\ \begin{array}{l}
@@ -490,8 +493,12 @@ n = 0 \lor \forall h, H'.\;h \sim H + H' \Rightarrow (h, c)\,\mathsf{ok} \land {
 \forall h', c'.\;(h, c) \rightarrow (h', c') \Rightarrow \exists H''.\;h' \sim H'' + H' \land H'' \in \mathsf{wp}_{n - 1}(c', Q)
 \end{array}\right\}$$
 
-\begin{lemma}
-$$\{P\}\ G\ \{Q\} \land H \in P \land h \sim_k H + H' \Rightarrow \exists H''.\;H'' \in Q \land h \sim_k H'' + H'$$
+We say a logical heap $H$ is \emph{self-consistent with depth bound $k$}, denoted $H\,\mathsf{ok}_k$, if there exists a heap $h$, a ghost heap $\hat{h}$, an atomic spaces bag $A$, and a consistent stock of lemma type chunks $\Sigma$ of size at most $k$ such that $\llbrace\mathbf{heap}(h)\rrbrace + h + \hat{h} + \mathsf{chunks}(A) + \Sigma \ge \mathsf{heaps}(A) + H$, where a heap is interpreted as a set of $\mapsto$ chunks and a ghost heap is interpreted as a set of $\gmapsto$ chunks. Notice: if $H\,\mathsf{ok}_k$, it follows that $H$ is strongly consistent.
+
+Notice that $h \sim H$ if and only if $\exists k, (H + \llbrace\mathbf{heap}(h)\rrbrace)\,\mathsf{ok}_k$.
+
+\begin{lemma}[Soundness of inner ghost command correctness]\label{lem:G-sound}
+$$\{P\}\ G\ \{Q\} \land H \in P \land (H + H')\,\mathsf{ok}_k \Rightarrow \exists H'' \in Q.\; (H'' + H')\,\mathsf{ok}_k$$
 \end{lemma}
 \begin{proof}
 By induction on $k$ and nested induction on the size of $G$. The outer induction hypothesis is used to deal with lemma calls.
@@ -501,6 +508,9 @@ By induction on $k$ and nested induction on the size of $G$. The outer induction
 If an annotated command $\hat{c}$ is correct with respect to precondition $P$ and postcondition $Q$, then, for all $n$, $P$ implies the weakest precondition of the erasure of $\hat{c}$ with respect to $Q$ for $n$ steps:
 $$\{P\}\ \hat{c}\ \{Q\} \Rightarrow \forall n.\;P \Rightarrow \mathsf{wp}_n(\mathsf{erasure}(\hat{c}), Q)$$
 \end{lemma}
+\begin{proof}
+The most interesting case is $\hat{c} = \mathbf{FAA}(\ell, z)$. Fix an $n$ and a logical heap $H \in P$. Fix a heap $h$, a ghost heap $\hat{h}$, an atomic spaces bag $A$, a consistent stock of lemma type chunks $\Sigma$, and a frame $H_\mathsf{F}$ such that $h + \hat{h} + \mathsf{chunks}(A) + \Sigma = \mathsf{heap}(A) + H + H_\mathsf{F}$. By $H \in P$ and $H$ strongly consistent we can fix a $g$, a $G$ and an $H'$ such that $H = \llbrace \lambda g.\;G : \mathsf{FAA\_ghop}(\ell, z, V_\mathsf{pre}, V_\mathsf{post})\rrbrace + H'$ and $H' \vDash V_\mathsf{pre}()$. By strong consistency of $H$, we have $\forall \mathit{op}, V_\mathsf{P}, V_\mathsf{Q}.\;\{\mathit{op} : \mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q}) * \llbracket V_\mathsf{P}\rrbracket * \llbracket V_\mathsf{pre}()\rrbracket\}\ G[\mathit{op}/g]\ \{\mathit{op} : \mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q}) * \llbracket V_\mathsf{Q}()\rrbracket * \llbracket V_\mathsf{post}()\rrbracket\}$. We take $\mathit{op} = \lambda.\;\ell \leftarrow_\mathsf{h} h(\ell) + z$, $V_\mathsf{P} = \mathsf{heap\_}(h)$, and $V_\mathsf{Q} = \mathsf{heap\_}(h[\ell := h(\ell) + z])$. We have that semantically, $\mathit{op}$ is of type $\mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q})$, so $\Sigma' = \Sigma - \llbrace \lambda g.\;G : \mathsf{FAA\_ghop}(\ell, z, V_\mathsf{pre}, V_\mathsf{post})\rrbrace + \llbrace \mathsf{op} : \mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q})\rrbrace$ is consistent. We apply Lemma~\ref{lem:G-sound} to $G$ using $H' + \llbrace \mathsf{op} : \mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q}), \mathbf{heap}(h)\rrbrace$ for $H$, $H_\mathsf{F}$ for $H'$ and the size of $\Sigma'$ for $k$ to obtain that there exists an $H'' \in \llbracket V_\mathsf{post}()\rrbracket$ such that $(H'' + \llbrace \mathsf{op} : \mathsf{FAA\_op}(\ell, z, V_\mathsf{P}, V_\mathsf{Q}), \mathbf{heap}(h[\ell:=h(\ell) + z)\rrbrace + H_\mathsf{F})\,\mathsf{ok}_k$ and therefore $\llbrace \lambda g.\;G : \mathsf{FAA\_ghop}(\ell, z, V_\mathsf{pre}, V_\mathsf{post})\rrbrace + H'' \in Q$ and $h[\ell := h(\ell) + z] \sim H'' + \llbrace \lambda g.\;G : \mathsf{FAA\_ghop}(\ell, z, V_\mathsf{pre}, V_\mathsf{post})\rrbrace + H_\mathsf{F}$.
+\end{proof}
 
 \begin{lemma}
 If for all $n$, the weakest precondition of a command $c$ with respect to postcondition $\mathsf{True}$ for $n$ steps is $\mathsf{True}$, then $c$ is safe.
