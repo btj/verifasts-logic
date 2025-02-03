@@ -20,6 +20,7 @@ jobs:
           pdflatex verifasts-logic.tex
           bibtex verifasts-logic
           pdflatex verifasts-logic.tex
+          pdflatex verifasts-logic.tex
 
       - uses: actions/upload-artifact@v4.5.0
         with:
