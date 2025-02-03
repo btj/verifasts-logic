@@ -36,11 +36,13 @@ jobs:
         bibtex verifasts-logic
         pdflatex verifasts-logic.tex
         pdflatex verifasts-logic.tex
+        mkdir artifact
+        cp verifasts-logic.pdf artifact
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: verifasts-logic.pdf
+        path: artifact
         
     - name: Deploy to GitHub Pages
       id: deployment
