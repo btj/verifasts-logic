@@ -29,13 +29,13 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v5  
     
-      - name: Build PDF
-        shell: bash
-        run: |
-          pdflatex verifasts-logic.tex
-          bibtex verifasts-logic
-          pdflatex verifasts-logic.tex
-          pdflatex verifasts-logic.tex
+    - name: Build PDF
+      shell: bash
+      run: |
+        pdflatex verifasts-logic.tex
+        bibtex verifasts-logic
+        pdflatex verifasts-logic.tex
+        pdflatex verifasts-logic.tex
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
