@@ -17,7 +17,9 @@ jobs:
       - name: Build PDF
         shell: bash
         run: |
-          mklatex verifasts-logic.pdf
+          pdflatex verifasts-logic.tex
+          bibtex verifasts-logic
+          pdflatex verifasts-logic.tex
 
       - uses: actions/upload-artifact@v4.5.0
         with:
